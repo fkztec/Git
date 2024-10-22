@@ -1,7 +1,3 @@
-Aqui está um exemplo de README que você pode usar para documentar o seu projeto de configuração do Zabbix usando Docker Compose com MySQL.
-
----
-
 # Zabbix com Docker Compose e MySQL
 
 Este projeto configura uma stack do Zabbix utilizando Docker Compose, com o banco de dados MySQL como backend. A stack inclui o servidor Zabbix, a interface web, Grafana e agentes para monitorar diferentes serviços.
