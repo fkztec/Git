@@ -1,0 +1,143 @@
+version: '3.1'
+
+services:
+  zabbix-mysql:
+    container_name: zabbix-mysql
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=zabbix
+      - MYSQL_DATABASE=zabbix
+      - MYSQL_USER=zabbix
+      - MYSQL_PASSWORD=zabbix
+    volumes:
+      - ./zabbix/zabbix-mysql:/var/lib/mysql
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.2
+    ports:
+      - 3306:3306
+
+  zabbix-server:
+    container_name: zabbix-server
+    image: zabbix/zabbix-server-mysql:6.0
+    restart: always
+    environment:
+      - DB_SERVER_HOST=zabbix-mysql
+      - MYSQL_USER=zabbix
+      - MYSQL_PASSWORD=zabbix
+    volumes:
+      - ./zabbix/zabbix-server-module:/var/lib/zabbix/modules
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.3
+    ports:
+      - 10051:10051
+    depends_on:
+      - zabbix-mysql
+
+  zabbix-frontend:
+    container_name: zabbix-frontend
+    image: zabbix/zabbix-web-nginx-mysql:6.0
+    restart: always
+    environment:
+      - DB_SERVER_HOST=zabbix-mysql
+      - MYSQL_USER=zabbix
+      - MYSQL_PASSWORD=zabbix
+      - ZBX_SERVER_HOST=zabbix-server
+      - PHP_TZ=America/Belem
+    ports:
+      - 80:8080
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.4
+    depends_on:
+      - zabbix-mysql
+      - zabbix-server
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - 3000:3000
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.20
+    depends_on:
+      - zabbix-server
+
+  zabbix-agent-web1:
+    container_name: zabbix-agent-web1
+    image: zabbix/zabbix-agent:ubuntu-trunk
+    restart: always
+    environment:
+      - ZBX_HOSTNAME=nginx-web1
+      - ZBX_SERVER_HOST=zabbix-server
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.30
+    depends_on:
+      - zabbix-server
+
+  zabbix-agent-web2:
+    container_name: zabbix-agent-web2
+    image: zabbix/zabbix-agent:ubuntu-trunk
+    restart: always
+    environment:
+      - ZBX_HOSTNAME=nginx-web2
+      - ZBX_SERVER_HOST=zabbix-server
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.31
+    depends_on:
+      - zabbix-server
+
+  zabbix-agent-db:
+    container_name: zabbix-agent-db
+    image: zabbix/zabbix-agent:ubuntu-trunk
+    restart: always
+    environment:
+      - ZBX_HOSTNAME=zabbix-mysql
+      - ZBX_SERVER_HOST=zabbix-server
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.32
+    depends_on:
+      - zabbix-server
+
+  zabbix-agent-grafana:
+    container_name: zabbix-agent-grafana
+    image: zabbix/zabbix-agent:ubuntu-trunk
+    restart: always
+    environment:
+      - ZBX_HOSTNAME=grafana
+      - ZBX_SERVER_HOST=zabbix-server
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.33
+    depends_on:
+      - zabbix-server
+
+  zabbix-agent-server:
+    container_name: zabbix-agent-server
+    image: zabbix/zabbix-agent:ubuntu-trunk
+    restart: always
+    environment:
+      - ZBX_HOSTNAME=zabbix-server
+      - ZBX_SERVER_HOST=zabbix-server
+    networks:
+      lab-zabbix:
+        ipv4_address: 10.0.0.34
+    depends_on:
+      - zabbix-server
+
+networks:
+  lab-zabbix:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
+          gateway: 10.0.0.1
